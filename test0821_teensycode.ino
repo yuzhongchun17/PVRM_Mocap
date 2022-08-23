@@ -550,15 +550,42 @@ void loop() {
       Serial.println();
       Serial.println("================== Preparing to record IMU + Encoder Data ==================");
       Serial.println("===================== Enter capture duration (s) ======================");
-      while(!Serial.available()){}
-      input_duration = Serial.read();
-      capture_time = input_duration.toInt() * 1000; // s to ms
+//      Serial.flush();
+//      while (Serial.available() < 2) {} // wait for input to arrive
+//      // declare int array to store serial input
+//      if(Serial.available() == 2){
+//        String inputNum_tens = Serial.read(); // tens digit
+//        String inputNum_ones = Serial.read(); // ones digit
+//        //capture_time = (inputNum_tens.toInt()*10 + inputNum_ones.toInt()) * 1000; //s to ms
+//        capture_time = inputNum_tens.toInt()*1000;
+//      }
+      Serial.println(F("type:"));
+      Serial.println(F("1 - 10 s"));  
+      Serial.println(F("2 - 20 s")); 
+      Serial.println(F("3 - 30 s"));     
+      while(!Serial.available()){} // wait for input to arrive
+
+      // Capture time selection switch
+      char captureTimeSelection = Serial.read();
+      switch(captureTimeSelection){
+        case '1':
+          capture_time = 10 * 1000; // ms
+          break;
+        case '2':
+          capture_time = 20 * 1000; // ms
+          break;
+        case '3':
+          capture_time = 30 * 1000; // ms
+          break;
+        }
       Serial.print("Capture duration set to ");
       captureTimeInfo = String(capture_time / 1000) + " s";
       Serial.println(captureTimeInfo);
       while(Serial.available()){
         Serial.readString();
       }
+
+      Serial.println("");
       Serial.println("================= Wait for Mocap Signal to Start =================");
       while(digitalRead(en_mocap_Pin)){
         delay(10);
@@ -575,8 +602,8 @@ void loop() {
         sampleTimeOld = sampleTime;
         motorDelayCounter = motorDelayCounter + 1;
 
-   
-        if (Serial.available() || ((millis() - totalTestTime) >= 10000)) {      // If any command is sent to serial monitor, end test after approximately 25 minutes of running time.
+        //rint captureDuration = 30000; // ms
+        if (Serial.available() || ((millis() - totalTestTime) >= capture_time)) {      // If any command is sent to serial monitor, end test after approximately 25 minutes of running time.
           digitalWrite(enPin2, LOW);
           Serial.readString();
           break;
