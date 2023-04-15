@@ -1,3 +1,4 @@
+
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
 #include "I2Cdev.h"
@@ -40,8 +41,8 @@ unsigned long curMillis;
 unsigned long captureDuration = 1000; //ms default recording period, could be changed later
 String captureDurationInfo;
 
-#define LED_PIN 13
-bool blinkState = false;
+// #define LED_PIN 13
+// bool blinkState = false;
 
 void setup() {
   
@@ -140,13 +141,14 @@ void setup() {
 //     while(!Serial.available()) { }
 
     // configure Arduino LED pin for output
-    pinMode(LED_PIN, OUTPUT);
+    // pinMode(LED_PIN, OUTPUT);
 
     // record time started
 //    startMillis = millis();
 //    time_start = millis();
 }
 
+bool isMocap = false;
 void loop() {
     //    Use serial monitor as command center to control the IMUs. For data logging, use Coolterm.exe. 
     Serial.println();
@@ -203,15 +205,13 @@ void loop() {
       Serial.print("Capture duration set to " + captureDurationInfo);  
       // CAPTURE TIME SELECTION END ---
 
-      
-//      // WAIT FOR MOCAP SIGNAL ---
-//      Serial.println("");
-//      Serial.println("===== Wait for Mocap Signal to Start =====");
-//      while(!digitalRead(en_mocap_Pin)){}
-//      while(digitalRead(en_mocap_Pin)){
-//        delay(10);
-//      }
-//      // WAIT FOR MOCAP END ---
+
+      // Serial.println("Receiving Mocap Signal");
+      //  WAIT FOR MOCAP SIGNAL ---
+     Serial.println("");
+     Serial.println("===== Wait for Mocap Signal to Start =====");
+     while(!digitalRead(en_mocap_Pin)){}
+     // WAIT FOR MOCAP END ---
       
       // READ IMU DATA ---
       startMillis = millis();
