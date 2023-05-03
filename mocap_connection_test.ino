@@ -9,6 +9,7 @@ void setup() {
   //Setup for mocap
     pinMode(en_mocap_Pin, INPUT_PULLDOWN);
     delay(100);
+    Serial.println("ready..");
 }
 
 void loop() {
