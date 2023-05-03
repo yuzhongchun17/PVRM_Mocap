@@ -184,24 +184,26 @@ void loop() {
       
       // CAPTURE TIME SELECTION ---
       Serial.println(F("type:"));
-      Serial.println(F("1 - 10 s"));  
-      Serial.println(F("2 - 20 s")); 
-      Serial.println(F("3 - 30 s"));
+//      Serial.println(F("1 - 10 s"));  
+//      Serial.println(F("2 - 20 s")); 
+//      Serial.println(F("3 - 30 s"));
       
       while(!Serial.available()){} // wait for input to arrive
-      char captureTimeSelection = Serial.read();
-      switch(captureTimeSelection){
-        case '1':
-          captureDuration = 10 * 1000; // ms
-          break;
-        case '2':
-          captureDuration = 20 * 1000; // ms
-          break;
-        case '3':
-          captureDuration = 30 * 1000; // ms
-          break;
-        }
-      captureDurationInfo = String(captureDuration / 1000) + " s";
+      String inputDuration = Serial.readString();
+      captureDuration = inputDuration.toInt() * 1000; // ms
+//      char captureTimeSelection = Serial.read();
+//      switch(captureTimeSelection){
+//        case '1':
+//          captureDuration = 10 * 1000; // ms
+//          break;
+//        case '2':
+//          captureDuration = 20 * 1000; // ms
+//          break;
+//        case '3':
+//          captureDuration = 30 * 1000; // ms
+//          break;
+//        }
+      captureDurationInfo = String(captureDuration / 1000) + " s"; //s
       Serial.print("Capture duration set to " + captureDurationInfo);  
       // CAPTURE TIME SELECTION END ---
 
