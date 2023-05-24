@@ -1,8 +1,9 @@
 
 // I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
 // for both classes must be in the include path of your project
-#include "I2Cdev.h"
-#include "MPU6050.h"
+#include <I2Cdev.h>
+#include <MPU6050.h>
+#include <TimerOne.h>
 
 // Arduino Wire library is required if I2Cdev I2CDEV_ARDUINO_WIRE implementation
 // is used in I2Cdev.h
@@ -17,15 +18,21 @@
 MPU6050 mpu1(MPU1_ADDRESS); // <-- use for AD0 high
 MPU6050 mpu2(MPU2_ADDRESS);
 
+
 // offset value from Calibration.ino
 int offset1[] = {-3653, -427, 1590, -210, -10, -19}; // acelX acelY acelZ gyroX gyroY gyroZ for mpu1 0x68 
 int offset2[] ={-5783, 861, 1207, 78, 18, -30}; //for mpu2 0x69 
 
-//
+// 6-deg raw data from imu1 & imu2
 int16_t ax1, ay1, az1;
 int16_t gx1, gy1, gz1;
 int16_t ax2, ay2, az2;
 int16_t gx2, gy2, gz2;
+
+// gyro & accel sensitivity
+// reference: https://invensense.tdk.com/products/motion-tracking/6-axis/mpu-6050/
+float gyroSensitivity = 131; // to achive [deg/s] for +-250 dps sensitivity , use raw_gyro_value/gryoSensitivity
+float accelSensitivity = 16384; // to achive [m/s^2] for +-2 G sensitivity
 
 String raw_acc_gyro_imu1          ; // String containing all raw data that is transmitted to PC 
 String raw_acc_gyro_imu2; 
@@ -37,7 +44,9 @@ int capture_time = 5000;
 
 // time in millis
 unsigned long startMillis;  //some global variables available anywhere in the program
-unsigned long curMillis;
+unsigned long curMillis; // current ms
+unsigned long prevMillis = 0;
+unsigned long elapsedMillis; // time elapsed in ms
 unsigned long captureDuration = 1000; //ms default recording period, could be changed later
 String captureDurationInfo;
 
@@ -55,6 +64,9 @@ void setup() {
 
     // initialize serial communication
     Serial.begin(115200);
+
+    // Set the desired clock frequency in Hz (4 kHz)
+    Wire.setClock(4000); 
 
     //Setup for mocap
     pinMode(en_mocap_Pin, INPUT_PULLDOWN);
@@ -77,6 +89,7 @@ void setup() {
     Serial.println(mpu2.testConnection() ? "MPU2 connection successful" : "MPU2 connection failed");
     Wire.endTransmission(MPU2_ADDRESS);
 
+
     // set offset value 
     mpu1.setXAccelOffset(offset1[0]);
     mpu1.setYAccelOffset(offset1[1]);
@@ -91,6 +104,8 @@ void setup() {
     mpu2.setXGyroOffset(offset2[3]);
     mpu2.setYGyroOffset(offset2[4]);
     mpu2.setZGyroOffset(offset2[5]);
+
+    //
 //    // use the code below to change accel/gyro offset values
 //    /*
 //    Wire.beginTransmission(MPU1_ADDRESS);
@@ -140,15 +155,9 @@ void setup() {
 //     Serial.print("press any key to start recording \n");
 //     while(!Serial.available()) { }
 
-    // configure Arduino LED pin for output
-    // pinMode(LED_PIN, OUTPUT);
-
-    // record time started
-//    startMillis = millis();
-//    time_start = millis();
 }
 
-bool isMocap = false;
+// unsigned long previousTime = 0;
 void loop() {
     //    Use serial monitor as command center to control the IMUs. For data logging, use Coolterm.exe. 
     Serial.println();
@@ -184,71 +193,40 @@ void loop() {
       
       // CAPTURE TIME SELECTION ---
       Serial.println(F("type:"));
-//      Serial.println(F("1 - 10 s"));  
-//      Serial.println(F("2 - 20 s")); 
-//      Serial.println(F("3 - 30 s"));
-      
       while(!Serial.available()){} // wait for input to arrive
       String inputDuration = Serial.readString();
       captureDuration = inputDuration.toInt() * 1000; // ms
-//      char captureTimeSelection = Serial.read();
-//      switch(captureTimeSelection){
-//        case '1':
-//          captureDuration = 10 * 1000; // ms
-//          break;
-//        case '2':
-//          captureDuration = 20 * 1000; // ms
-//          break;
-//        case '3':
-//          captureDuration = 30 * 1000; // ms
-//          break;
-//        }
       captureDurationInfo = String(captureDuration / 1000) + " s"; //s
       Serial.print("Capture duration set to " + captureDurationInfo);  
+      Serial.println();
       // CAPTURE TIME SELECTION END ---
 
-
-      // Serial.println("Receiving Mocap Signal");
-      //  WAIT FOR MOCAP SIGNAL ---
-     Serial.println("");
-     Serial.println("===== Wait for Mocap Signal to Start =====");
-     while(!digitalRead(en_mocap_Pin)){}
-     // WAIT FOR MOCAP END ---
+    //   //  WAIT FOR MOCAP SIGNAL ---
+    //  Serial.println("");
+    //  Serial.println("===== Wait for Mocap Signal to Start =====");
+    //  while(!digitalRead(en_mocap_Pin)){}
+    //  // WAIT FOR MOCAP END ---
       
       // READ IMU DATA ---
       startMillis = millis();
       while(1)
       {
         curMillis = millis();
-        if(curMillis - startMillis >= captureDuration) // record IMU data for given 'captureDuration'
+        elapsedMillis = curMillis - startMillis;
+        if(elapsedMillis >= captureDuration) // record IMU data for given 'captureDuration'
         {
-          Serial.println(startMillis);
-          Serial.println(curMillis);
           break;
         } else {
-          readIMU();
+          // set data collecting frequency = 100 Hz (per 10 ms)
+          // check if the desired time interval (10 ms) has passed
+          if (curMillis - prevMillis >= 10) {
+            prevMillis = curMillis;
+            readIMU();
+          }
         }
       }
       // READ IMU DATA END ---
     }
-
-    // // read raw accel/gyro measurements from MPU1
-    // Wire.beginTransmission(MPU1_ADDRESS);
-    // mpu1.getMotion6(&ax1, &ay1, &az1, &gx1, &gy1, &gz1);
-    // Wire.endTransmission(MPU1_ADDRESS);
-
-    // // read raw accel/gyro measurements from MPU2
-    // Wire.beginTransmission(MPU2_ADDRESS);
-    // mpu2.getMotion6(&ax2, &ay2, &az2, &gx2, &gy2, &gz2);
-    // Wire.endTransmission(MPU2_ADDRESS);
-
-    // these methods (and a few others) are also available
-    //mpu1.getAcceleration(&ax, &ay, &az);
-    //mpu1.getRotation(&gx, &gy, &gz);
-
-//    // blink LED to indicate activity
-//    blinkState = !blinkState;
-//    digitalWrite(LED_PIN, blinkState);
 }
 
 void readIMU() {
@@ -263,7 +241,7 @@ void readIMU() {
     Wire.endTransmission(MPU2_ADDRESS);
 
     // print output datastring to serial monitor
-    raw_acc_gyro_imu1 = String(ax1) + "/" + String(ay1) + "/" + String(az1) + "/" + String(gx1) + "/" + String(gy1) + "/" + String(gz1); 
-    raw_acc_gyro_imu2 = String(ax2) + "/" + String(ay2) + "/" + String(az2) + "/" + String(gx2) + "/" + String(gy2) + "/" + String(gz2); 
-    Serial.println(String(millis() - startMillis) + "(ms)" + "\t" + raw_acc_gyro_imu1 + "\t" +raw_acc_gyro_imu2);
+    raw_acc_gyro_imu1 = String(ax1/accelSensitivity) + "/" + String(ay1/accelSensitivity) + "/" + String(az1/accelSensitivity) + "/" + String(gx1/gyroSensitivity) + "/" + String(gy1/gyroSensitivity) + "/" + String(gz1/gyroSensitivity); 
+    raw_acc_gyro_imu2 = String(ax2/accelSensitivity) + "/" + String(ay2/accelSensitivity) + "/" + String(az2/accelSensitivity) + "/" + String(gx2/gyroSensitivity) + "/" + String(gy2/gyroSensitivity) + "/" + String(gz2/gyroSensitivity); 
+    Serial.println(String(elapsedMillis) + "(ms)" + "/" + raw_acc_gyro_imu1 + "/" +raw_acc_gyro_imu2) + "/";
 }
