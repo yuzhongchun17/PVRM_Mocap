@@ -157,7 +157,6 @@ void setup() {
 
 }
 
-// unsigned long previousTime = 0;
 void loop() {
     //    Use serial monitor as command center to control the IMUs. For data logging, use Coolterm.exe. 
     Serial.println();
@@ -201,11 +200,11 @@ void loop() {
       Serial.println();
       // CAPTURE TIME SELECTION END ---
 
-    //   //  WAIT FOR MOCAP SIGNAL ---
-    //  Serial.println("");
-    //  Serial.println("===== Wait for Mocap Signal to Start =====");
-    //  while(!digitalRead(en_mocap_Pin)){}
-    //  // WAIT FOR MOCAP END ---
+      //  WAIT FOR MOCAP SIGNAL ---
+     Serial.println("");
+     Serial.println("===== Wait for Mocap Signal to Start =====");
+     while(!digitalRead(en_mocap_Pin)){}
+     // WAIT FOR MOCAP END ---
       
       // READ IMU DATA ---
       startMillis = millis();
@@ -243,5 +242,5 @@ void readIMU() {
     // print output datastring to serial monitor
     raw_acc_gyro_imu1 = String(ax1/accelSensitivity) + "/" + String(ay1/accelSensitivity) + "/" + String(az1/accelSensitivity) + "/" + String(gx1/gyroSensitivity) + "/" + String(gy1/gyroSensitivity) + "/" + String(gz1/gyroSensitivity); 
     raw_acc_gyro_imu2 = String(ax2/accelSensitivity) + "/" + String(ay2/accelSensitivity) + "/" + String(az2/accelSensitivity) + "/" + String(gx2/gyroSensitivity) + "/" + String(gy2/gyroSensitivity) + "/" + String(gz2/gyroSensitivity); 
-    Serial.println(String(elapsedMillis) + "(ms)" + "/" + raw_acc_gyro_imu1 + "/" +raw_acc_gyro_imu2) + "/";
+    Serial.println(String(elapsedMillis) + "(ms)" + "/" + raw_acc_gyro_imu1 + "/" +raw_acc_gyro_imu2 + "/");
 }
